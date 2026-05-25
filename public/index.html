@@ -448,7 +448,11 @@ header p {
   }
 
   function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    var stored = localStorage.getItem('clipsync_deviceId');
+    if (stored) return stored;
+    var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    localStorage.setItem('clipsync_deviceId', id);
+    return id;
   }
 
   function setupQR() {

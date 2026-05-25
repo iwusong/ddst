@@ -258,24 +258,6 @@ header p {
 }
 .btn-send:hover { background: var(--primary-hover); border-color: var(--primary-hover); color: white; }
 
-.shortcuts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 8px;
-}
-.shortcut-btn {
-  font-size: 12px;
-  padding: 4px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all 0.15s;
-}
-.shortcut-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--msg-own); }
-
 .qr-modal-overlay {
   display: none;
   position: fixed;
@@ -369,7 +351,6 @@ header p {
       <button class="btn-icon" id="btnQrMobile" title="二维码">📱</button>
       <button class="btn-icon btn-send" id="btnSend" title="发送">➤</button>
     </div>
-    <div class="shortcuts" id="shortcuts"></div>
   </div>
 </div>
 
@@ -397,11 +378,6 @@ header p {
   var ws = null;
   var deviceId = '';
 
-  var defaultShortcuts = [
-    '验证码', '密码', '邮箱', '手机号',
-    'https://', 'http://', '---分隔线---', '=====',
-  ];
-
   function init() {
     fixViewportHeight();
     deviceId = generateId();
@@ -418,7 +394,6 @@ header p {
     setupQR();
     connectWS();
     setupInput();
-    setupShortcuts();
     autoResizeTextarea();
   }
 
@@ -627,27 +602,6 @@ header p {
     var el = document.getElementById('input');
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  }
-
-  function setupShortcuts() {
-    var el = document.getElementById('shortcuts');
-    var saved = localStorage.getItem('clipsync_shortcuts');
-    var items = saved ? JSON.parse(saved) : defaultShortcuts;
-
-    items.forEach(function (text) {
-      var btn = document.createElement('button');
-      btn.className = 'shortcut-btn';
-      btn.textContent = text;
-      btn.addEventListener('click', function () {
-        var inputEl = document.getElementById('input');
-        if (text === '---分隔线---') { inputEl.value += '\n---\n'; }
-        else if (text === '=====') { inputEl.value += '\n=====\n'; }
-        else { inputEl.value += text; }
-        autoResizeTextarea();
-        inputEl.focus();
-      });
-      el.appendChild(btn);
-    });
   }
 
   init();

@@ -163,6 +163,11 @@ header p {
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 .msg.own { align-self: flex-end; }
 .msg.other { align-self: flex-start; }
+.msg-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
 .msg-bubble {
   padding: 10px 14px;
   border-radius: 12px;
@@ -185,19 +190,11 @@ header p {
   font-size: 11px;
   color: var(--text-secondary);
   margin: 0 4px 2px;
-}
-.msg.own .msg-device { text-align: right; }
-.msg-footer {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
 }
-.msg-time {
-  font-size: 11px;
-  color: var(--text-secondary);
-}
+.msg.own .msg-device { justify-content: flex-end; }
+.msg.other .msg-device { justify-content: flex-start; }
 .btn-copy {
   font-size: 11px;
   color: var(--primary);
@@ -537,51 +534,59 @@ header p {
 
     var deviceLabel = document.createElement('div');
     deviceLabel.className = 'msg-device';
-    deviceLabel.textContent = isOwn ? '我' : '其他设备';
+    var nameSpan = document.createElement('span');
+    nameSpan.textContent = isOwn ? '我' : '其他设备';
+    deviceLabel.appendChild(nameSpan);
+    var timeSpan = document.createElement('span');
+    timeSpan.textContent = formatTime(time || Date.now());
+    deviceLabel.appendChild(timeSpan);
     div.appendChild(deviceLabel);
 
-    var bubble = document.createElement('div');
-    bubble.className = 'msg-bubble';
-    bubble.textContent = text;
-    div.appendChild(bubble);
+    if (isOwn) {
+      var bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.textContent = text;
+      div.appendChild(bubble);
+    } else {
+      var row = document.createElement('div');
+      row.className = 'msg-row';
 
-    var footer = document.createElement('div');
-    footer.className = 'msg-footer';
+      var bubble = document.createElement('div');
+      bubble.className = 'msg-bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
 
-    var timeEl = document.createElement('span');
-    timeEl.className = 'msg-time';
-    timeEl.textContent = formatTime(time || Date.now());
-    footer.appendChild(timeEl);
-
-    var copyBtn = document.createElement('button');
-    copyBtn.className = 'btn-copy';
-    copyBtn.textContent = '复制';
-    copyBtn.addEventListener('click', function () {
-      navigator.clipboard.writeText(text).then(function () {
-        copyBtn.textContent = '已复制';
-        copyBtn.classList.add('copied');
-        setTimeout(function () {
-          copyBtn.textContent = '复制';
-          copyBtn.classList.remove('copied');
-        }, 1500);
-      }).catch(function () {
-        var ta = document.createElement('textarea');
-        ta.value = text;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
-        copyBtn.textContent = '已复制';
-        copyBtn.classList.add('copied');
-        setTimeout(function () {
-          copyBtn.textContent = '复制';
-          copyBtn.classList.remove('copied');
-        }, 1500);
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'btn-copy';
+      copyBtn.textContent = '复制';
+      copyBtn.addEventListener('click', function () {
+        navigator.clipboard.writeText(text).then(function () {
+          copyBtn.textContent = '已复制';
+          copyBtn.classList.add('copied');
+          setTimeout(function () {
+            copyBtn.textContent = '复制';
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        }).catch(function () {
+          var ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+          copyBtn.textContent = '已复制';
+          copyBtn.classList.add('copied');
+          setTimeout(function () {
+            copyBtn.textContent = '复制';
+            copyBtn.classList.remove('copied');
+          }, 1500);
+        });
       });
-    });
-    footer.appendChild(copyBtn);
+      row.appendChild(copyBtn);
 
-    div.appendChild(footer);
+      div.appendChild(row);
+    }
+
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }

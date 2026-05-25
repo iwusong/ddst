@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "跨设备剪贴板同步工具 - 局域网内多设备文本/剪贴板同步",
   "bin": {
-    "ddst": "server.js"
+    "dudust": "server.js"
   },
   "preferGlobal": true,
   "scripts": {

@@ -13,7 +13,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/iwusong/ddst.git"
   },
   "dependencies": {
     "ws": "^8.16.0"

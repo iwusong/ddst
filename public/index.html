@@ -507,11 +507,7 @@ header p {
         var data = JSON.parse(e.data);
         if (data.type === 'count') {
           var el = document.getElementById('deviceCount');
-          if (data.count <= 1) {
-            el.textContent = '';
-          } else {
-            el.textContent = (data.count - 1) + ' 台设备已连接';
-          }
+          el.textContent = '共有 ' + data.count + ' 台设备';
           return;
         }
         addMessage(data.text, data.deviceId, data.time, data.deviceId === deviceId);

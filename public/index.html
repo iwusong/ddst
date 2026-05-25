@@ -18,18 +18,22 @@
   --msg-own: #eef2ff;
   --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
 }
+html { height: 100%; overflow: hidden; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
   display: flex;
   justify-content: center;
+  overscroll-behavior: none;
 }
 .container {
   width: 100%;
   max-width: 800px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--card);
@@ -395,6 +399,7 @@ header p {
   ];
 
   function init() {
+    fixViewportHeight();
     deviceId = generateId();
 
     if (isLocalhost) {
@@ -411,6 +416,28 @@ header p {
     setupInput();
     setupShortcuts();
     autoResizeTextarea();
+  }
+
+  function fixViewportHeight() {
+    var container = document.getElementById('app');
+    function update() {
+      var h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      container.style.height = h + 'px';
+    }
+    update();
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', function () {
+        update();
+        var msgs = document.getElementById('messages');
+        msgs.scrollTop = msgs.scrollHeight;
+      });
+    } else {
+      window.addEventListener('resize', function () {
+        update();
+        var msgs = document.getElementById('messages');
+        msgs.scrollTop = msgs.scrollHeight;
+      });
+    }
   }
 
   function generateId() {

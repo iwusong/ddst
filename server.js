@@ -88,7 +88,7 @@ wss.on('connection', (ws) => {
 
 server.listen(PORT, () => {
   console.log('');
-  console.log('  ClipSync 已启动');
+  console.log('  ddst 已启动');
   console.log('  ─────────────────────────────');
   for (const ip of lanIps) {
     console.log(`  http://${ip}:${PORT}`);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>ClipSync - 跨设备剪贴板</title>
+<title>ddst</title>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -318,8 +318,8 @@ header p {
 <body>
 <div class="container" id="app">
   <header>
-    <h1>ClipSync</h1>
-    <p>跨设备剪贴板同步</p>
+    <h1>ddst</h1>
+    <p>跨设备同步工具</p>
   </header>
 
   <div class="ip-banner" id="ipBanner" style="display:none">
@@ -420,10 +420,10 @@ header p {
   }
 
   function generateId() {
-    var stored = localStorage.getItem('clipsync_deviceId');
+    var stored = localStorage.getItem('ddst_deviceId');
     if (stored) return stored;
     var id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    localStorage.setItem('clipsync_deviceId', id);
+    localStorage.setItem('ddst_deviceId', id);
     return id;
   }
 

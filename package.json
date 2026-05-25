@@ -1,6 +1,6 @@
 {
   "name": "dudust",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "跨设备剪贴板同步工具 - 局域网内多设备文本/剪贴板同步",
   "bin": {
     "dudust": "server.js"
@@ -9,7 +9,14 @@
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": ["clipboard", "sync", "lan", "websocket", "剪贴板", "同步"],
+  "keywords": [
+    "clipboard",
+    "sync",
+    "lan",
+    "websocket",
+    "剪贴板",
+    "同步"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

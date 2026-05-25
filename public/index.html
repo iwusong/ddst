@@ -494,6 +494,7 @@ header p {
       document.getElementById('statusText').textContent = '连接断开，正在重连...';
       document.getElementById('statusDot').className = 'dot red';
       document.getElementById('deviceCount').textContent = '';
+      document.getElementById('messages').innerHTML = '';
       setTimeout(connectWS, 2000);
     };
 
@@ -508,6 +509,14 @@ header p {
         if (data.type === 'count') {
           var el = document.getElementById('deviceCount');
           el.textContent = '共有 ' + data.count + ' 台设备';
+          return;
+        }
+        if (data.type === 'sync') {
+          var msgs = document.getElementById('messages');
+          msgs.innerHTML = '';
+          data.messages.forEach(function (m) {
+            addMessage(m.text, m.deviceId, m.time, m.deviceId === deviceId);
+          });
           return;
         }
         addMessage(data.text, data.deviceId, data.time, data.deviceId === deviceId);

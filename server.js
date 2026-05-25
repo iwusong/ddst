@@ -5,6 +5,7 @@ const os = require('os');
 const { WebSocketServer } = require('ws');
 
 const PORT = process.env.PORT || 3000;
+const MAX_MESSAGES = 50;
 
 function getLanIps() {
   const ips = [];
@@ -41,6 +42,7 @@ const server = http.createServer((req, res) => {
 });
 
 const wss = new WebSocketServer({ server });
+const messages = [];
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
@@ -56,12 +58,25 @@ function broadcastCount() {
 }
 
 wss.on('connection', (ws) => {
+  ws.send(JSON.stringify({ type: 'sync', messages }));
   broadcastCount();
 
   ws.on('message', (data) => {
+    const raw = data.toString();
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (parsed.type) return;
+    messages.push({ text: parsed.text, deviceId: parsed.deviceId, time: parsed.time });
+    if (messages.length > MAX_MESSAGES) {
+      messages.splice(0, messages.length - MAX_MESSAGES);
+    }
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(data.toString());
+        client.send(raw);
       }
     });
   });

@@ -117,14 +117,19 @@ header p {
 
 .connection-status {
   text-align: center;
-  padding: 6px;
+  padding: 6px 16px;
   font-size: 12px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
-.connection-status.connected { color: #22c55e; }
-.connection-status.disconnected { color: #ef4444; }
+.connection-status .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; }
+.connection-status .dot.green { background: #22c55e; }
+.connection-status .dot.red { background: #ef4444; }
+.device-count { color: var(--text-secondary); }
 
 .messages-area {
   flex: 1;
@@ -346,7 +351,10 @@ header p {
     <button class="ip-banner-close" id="ipClose">✕</button>
   </div>
 
-  <div class="connection-status disconnected" id="status">正在连接...</div>
+  <div class="connection-status" id="status">
+    <span><span class="dot red" id="statusDot"></span><span id="statusText">正在连接...</span></span>
+    <span class="device-count" id="deviceCount"></span>
+  </div>
 
   <div class="main-area">
     <div class="qr-sidebar" id="qrSidebar">
@@ -361,7 +369,6 @@ header p {
   <div class="input-area">
     <div class="input-row">
       <textarea id="input" rows="1" placeholder="输入或粘贴文本..." maxlength="50000"></textarea>
-      <button class="btn-icon" id="btnPaste" title="粘贴">📋</button>
       <button class="btn-icon" id="btnQrMobile" title="二维码">📱</button>
       <button class="btn-icon btn-send" id="btnSend" title="发送">➤</button>
     </div>
@@ -470,6 +477,7 @@ header p {
       });
       modalLabel.textContent = '扫描二维码连接此页面';
     } else {
+      btnQr.style.display = 'none';
       new QRCode(document.getElementById('qrcode'), { text: targetUrl, width: 160, height: 160 });
     }
   }
@@ -478,27 +486,34 @@ header p {
     ws = new WebSocket(wsUrl);
 
     ws.onopen = function () {
-      var el = document.getElementById('status');
-      el.textContent = '已连接';
-      el.className = 'connection-status connected';
+      document.getElementById('statusText').textContent = '已连接';
+      document.getElementById('statusDot').className = 'dot green';
     };
 
     ws.onclose = function () {
-      var el = document.getElementById('status');
-      el.textContent = '连接断开，正在重连...';
-      el.className = 'connection-status disconnected';
+      document.getElementById('statusText').textContent = '连接断开，正在重连...';
+      document.getElementById('statusDot').className = 'dot red';
+      document.getElementById('deviceCount').textContent = '';
       setTimeout(connectWS, 2000);
     };
 
     ws.onerror = function () {
-      var el = document.getElementById('status');
-      el.textContent = '连接错误，正在重连...';
-      el.className = 'connection-status disconnected';
+      document.getElementById('statusText').textContent = '连接错误，正在重连...';
+      document.getElementById('statusDot').className = 'dot red';
     };
 
     ws.onmessage = function (e) {
       try {
         var data = JSON.parse(e.data);
+        if (data.type === 'count') {
+          var el = document.getElementById('deviceCount');
+          if (data.count <= 1) {
+            el.textContent = '';
+          } else {
+            el.textContent = (data.count - 1) + ' 台设备已连接';
+          }
+          return;
+        }
         addMessage(data.text, data.deviceId, data.time, data.deviceId === deviceId);
       } catch {
         addMessage(e.data, '', Date.now(), false);
@@ -591,22 +606,7 @@ header p {
 
     inputEl.addEventListener('input', autoResizeTextarea);
 
-    document.getElementById('btnPaste').addEventListener('click', async function () {
-      try {
-        var text = await navigator.clipboard.readText();
-        var start = inputEl.selectionStart;
-        var end = inputEl.selectionEnd;
-        var before = inputEl.value.substring(0, start);
-        var after = inputEl.value.substring(end);
-        inputEl.value = before + text + after;
-        inputEl.selectionStart = inputEl.selectionEnd = start + text.length;
-        autoResizeTextarea();
-        inputEl.focus();
-      } catch {
-        inputEl.focus();
-        document.execCommand('paste');
-      }
-    });
+
   }
 
   function autoResizeTextarea() {

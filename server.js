@@ -42,14 +42,32 @@ const server = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+function broadcast(data) {
+  const msg = JSON.stringify(data);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(msg);
+    }
+  });
+}
+
+function broadcastCount() {
+  broadcast({ type: 'count', count: wss.clients.size });
+}
+
 wss.on('connection', (ws) => {
+  broadcastCount();
+
   ws.on('message', (data) => {
-    const msg = data.toString();
     wss.clients.forEach((client) => {
       if (client.readyState === 1) {
-        client.send(msg);
+        client.send(data.toString());
       }
     });
+  });
+
+  ws.on('close', () => {
+    broadcastCount();
   });
 });
 

@@ -453,8 +453,9 @@ header p {
     var qrModalContainer = document.getElementById('qrcode-modal');
     var qrGenerated = false;
 
+    sidebar.style.display = 'none';
+
     if (isMobile) {
-      sidebar.style.display = 'none';
       btnQr.style.display = 'flex';
       btnQr.addEventListener('click', function () {
         overlay.classList.add('open');
@@ -469,8 +470,6 @@ header p {
         if (e.target === overlay) closeModal();
       });
       modalLabel.textContent = '扫描二维码连接此页面';
-    } else {
-      new QRCode(document.getElementById('qrcode'), { text: targetUrl, width: 160, height: 160 });
     }
   }
 

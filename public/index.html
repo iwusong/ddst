@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>ddst</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="qrcode.min.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -391,8 +391,12 @@ header p {
       closeBtn.addEventListener('click', function () { banner.style.display = 'none'; });
     }
 
-    setupQR();
     connectWS();
+    try {
+      setupQR();
+    } catch (e) {
+      console.error('二维码初始化失败:', e);
+    }
     setupInput();
     autoResizeTextarea();
   }

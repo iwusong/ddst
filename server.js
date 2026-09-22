@@ -4,9 +4,11 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 const PORT = Number(process.env.PORT) || 3000;
+const TOKEN = process.env.TOKEN || crypto.randomBytes(16).toString('hex');
 const MAX_PORT_TRIES = 10;
 const MAX_MESSAGES = 50;
 let activePort = PORT;
@@ -51,7 +53,18 @@ function renderHtml() {
   html = html.replace('__LAN_IP__', lanIp);
   html = html.replace('__LAN_IPS__', JSON.stringify(lanIps));
   html = html.replace('__PORT__', String(activePort));
+  html = html.replace('__TOKEN__', TOKEN);
   return html;
+}
+
+function isLocalRequest(req) {
+  const addr = req.socket.remoteAddress || '';
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+}
+
+function checkToken(req, urlObj) {
+  if (isLocalRequest(req)) return true;
+  return urlObj.searchParams.get('t') === TOKEN;
 }
 
 const MIME_TYPES = {
@@ -64,8 +77,14 @@ const MIME_TYPES = {
 };
 
 const server = http.createServer((req, res) => {
-  const url = req.url.split('?')[0];
+  const urlObj = new URL(req.url, 'http://localhost');
+  const url = urlObj.pathname;
   if (url === '/' || url === '/dd') {
+    if (!checkToken(req, urlObj)) {
+      res.writeHead(401, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Unauthorized: 缺少或无效的访问令牌，请扫描电脑端展示的二维码访问。');
+      return;
+    }
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
     res.end(renderHtml());
     return;
@@ -84,8 +103,35 @@ const server = http.createServer((req, res) => {
   res.end('Not Found');
 });
 
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
 const messages = [];
+
+server.on('upgrade', (req, socket, head) => {
+  const urlObj = new URL(req.url, 'http://localhost');
+  if (!checkToken(req, urlObj)) {
+    socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');
+    socket.destroy();
+    return;
+  }
+  wss.handleUpgrade(req, socket, head, (ws) => {
+    wss.emit('connection', ws, req);
+  });
+});
+
+const HEARTBEAT_INTERVAL = 30000;
+
+const heartbeatTimer = setInterval(() => {
+  wss.clients.forEach((client) => {
+    if (client.isAlive === false) {
+      client.terminate();
+      return;
+    }
+    client.isAlive = false;
+    client.ping();
+  });
+}, HEARTBEAT_INTERVAL);
+
+wss.on('close', () => clearInterval(heartbeatTimer));
 
 function broadcast(data) {
   const msg = JSON.stringify(data);
@@ -101,6 +147,8 @@ function broadcastCount() {
 }
 
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   ws.send(JSON.stringify({ type: 'sync', messages }));
   broadcastCount();
 
@@ -112,6 +160,10 @@ wss.on('connection', (ws) => {
       return;
     }
     if (typeof parsed !== 'object' || parsed === null) return;
+    if (parsed.type === 'ping') {
+      ws.send(JSON.stringify({ type: 'pong' }));
+      return;
+    }
     if (parsed.type) return;
     if (typeof parsed.text !== 'string' || !parsed.text) return;
     messages.push({ text: parsed.text, deviceId: parsed.deviceId, time: parsed.time });
@@ -136,7 +188,7 @@ function printReady() {
   console.log('  ddst 已启动');
   console.log('  ─────────────────────────────');
   for (const ip of lanIps) {
-    console.log(`  http://${ip}:${activePort}`);
+    console.log(`  http://${ip}:${activePort}/?t=${TOKEN}`);
   }
   console.log('');
 }

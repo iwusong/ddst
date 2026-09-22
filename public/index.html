@@ -379,15 +379,17 @@ header p {
   var LAN_IP = '__LAN_IP__';
   var LAN_IPS = __LAN_IPS__;
   var PORT = '__PORT__';
+  var TOKEN = '__TOKEN__';
   var isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   var currentIp = LAN_IP;
   var accessHost = isLocalhost ? (currentIp + ':' + PORT) : window.location.host;
   var accessUrl = window.location.protocol + '//' + accessHost;
-  var targetUrl = accessUrl + '/dd';
+  var qs = '?t=' + encodeURIComponent(TOKEN);
+  var targetUrl = accessUrl + '/dd' + qs;
 
   var isMobile = window.location.pathname === '/dd';
   var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  var wsUrl = protocol + '//' + accessHost;
+  var wsUrl = protocol + '//' + accessHost + qs;
 
   function renderIpChips() {
     var chips = document.getElementById('ipChips');
@@ -407,9 +409,9 @@ header p {
     currentIp = ip;
     accessHost = currentIp + ':' + PORT;
     accessUrl = window.location.protocol + '//' + accessHost;
-    targetUrl = accessUrl + '/dd';
+    targetUrl = accessUrl + '/dd' + qs;
     var display = document.getElementById('ipDisplay');
-    if (display) display.textContent = accessUrl;
+    if (display) display.textContent = targetUrl;
     var qrEl = document.getElementById('qrcode');
     if (qrEl && !isMobile) {
       qrEl.innerHTML = '';
@@ -420,6 +422,9 @@ header p {
 
   var ws = null;
   var deviceId = '';
+  var reconnectDelay = 1000;
+  var heartbeatTimer = null;
+  var pongTimer = null;
 
   function init() {
     fixViewportHeight();
@@ -429,7 +434,7 @@ header p {
       var banner = document.getElementById('ipBanner');
       var display = document.getElementById('ipDisplay');
       var closeBtn = document.getElementById('ipClose');
-      display.textContent = accessUrl;
+      display.textContent = targetUrl;
       banner.style.display = 'flex';
       closeBtn.addEventListener('click', function () { banner.style.display = 'none'; });
       renderIpChips();
@@ -506,20 +511,47 @@ header p {
     }
   }
 
+  function startHeartbeat() {
+    stopHeartbeat();
+    heartbeatTimer = setInterval(function () {
+      if (!ws || ws.readyState !== 1) return;
+      ws.send(JSON.stringify({ type: 'ping' }));
+      if (pongTimer) clearTimeout(pongTimer);
+      pongTimer = setTimeout(function () {
+        if (ws && ws.readyState === 1) ws.close();
+      }, 10000);
+    }, 25000);
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+    if (pongTimer) {
+      clearTimeout(pongTimer);
+      pongTimer = null;
+    }
+  }
+
   function connectWS() {
+    stopHeartbeat();
     ws = new WebSocket(wsUrl);
 
     ws.onopen = function () {
+      reconnectDelay = 1000;
       document.getElementById('statusText').textContent = '已连接';
       document.getElementById('statusDot').className = 'dot green';
+      startHeartbeat();
     };
 
     ws.onclose = function () {
+      stopHeartbeat();
       document.getElementById('statusText').textContent = '连接断开，正在重连...';
       document.getElementById('statusDot').className = 'dot red';
       document.getElementById('deviceCount').textContent = '';
-      document.getElementById('messages').innerHTML = '';
-      setTimeout(connectWS, 2000);
+      setTimeout(connectWS, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 30000);
     };
 
     ws.onerror = function () {
@@ -530,6 +562,10 @@ header p {
     ws.onmessage = function (e) {
       try {
         var data = JSON.parse(e.data);
+        if (data.type === 'pong') {
+          if (pongTimer) { clearTimeout(pongTimer); pongTimer = null; }
+          return;
+        }
         if (data.type === 'count') {
           var el = document.getElementById('deviceCount');
           el.textContent = '共有 ' + data.count + ' 台设备';

@@ -73,6 +73,17 @@ header p {
 }
 .ip-banner-text { flex: 1; line-height: 1.5; }
 .ip-banner-text strong { font-size: 14px; }
+.ip-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.ip-chip {
+  font-size: 12px;
+  padding: 2px 8px;
+  border: 1px solid #fbbf24;
+  background: #fff;
+  color: #92400e;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ip-chip.active { background: #fbbf24; color: #fff; }
 .ip-banner-close {
   background: none;
   border: none;
@@ -326,6 +337,7 @@ header p {
     <div class="ip-banner-text">
       请在其他设备打开<br>
       <strong id="ipDisplay"></strong>
+      <div class="ip-chips" id="ipChips"></div>
     </div>
     <button class="ip-banner-close" id="ipClose">✕</button>
   </div>
@@ -365,15 +377,46 @@ header p {
 <script>
 (function () {
   var LAN_IP = '__LAN_IP__';
+  var LAN_IPS = __LAN_IPS__;
   var PORT = '__PORT__';
   var isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  var accessHost = isLocalhost ? (LAN_IP + ':' + PORT) : window.location.host;
+  var currentIp = LAN_IP;
+  var accessHost = isLocalhost ? (currentIp + ':' + PORT) : window.location.host;
   var accessUrl = window.location.protocol + '//' + accessHost;
   var targetUrl = accessUrl + '/dd';
 
   var isMobile = window.location.pathname === '/dd';
   var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   var wsUrl = protocol + '//' + accessHost;
+
+  function renderIpChips() {
+    var chips = document.getElementById('ipChips');
+    if (!chips) return;
+    chips.innerHTML = '';
+    if (LAN_IPS.length <= 1) return;
+    LAN_IPS.forEach(function (ip) {
+      var btn = document.createElement('button');
+      btn.className = 'ip-chip' + (ip === currentIp ? ' active' : '');
+      btn.textContent = ip;
+      btn.addEventListener('click', function () { selectIp(ip); });
+      chips.appendChild(btn);
+    });
+  }
+
+  function selectIp(ip) {
+    currentIp = ip;
+    accessHost = currentIp + ':' + PORT;
+    accessUrl = window.location.protocol + '//' + accessHost;
+    targetUrl = accessUrl + '/dd';
+    var display = document.getElementById('ipDisplay');
+    if (display) display.textContent = accessUrl;
+    var qrEl = document.getElementById('qrcode');
+    if (qrEl && !isMobile) {
+      qrEl.innerHTML = '';
+      new QRCode(qrEl, { text: targetUrl, width: 160, height: 160 });
+    }
+    renderIpChips();
+  }
 
   var ws = null;
   var deviceId = '';
@@ -389,6 +432,7 @@ header p {
       display.textContent = accessUrl;
       banner.style.display = 'flex';
       closeBtn.addEventListener('click', function () { banner.style.display = 'none'; });
+      renderIpChips();
     }
 
     connectWS();

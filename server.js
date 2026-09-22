@@ -11,16 +11,35 @@ const MAX_PORT_TRIES = 10;
 const MAX_MESSAGES = 50;
 let activePort = PORT;
 
+const VIRTUAL_IFACE_RE = /vEthernet|VMware|VirtualBox|Hyper-V|Docker|WSL|Tailscale|ZeroTier|Bluetooth|Npcap|TAP-|tun\d|utun/i;
+
+function ipPriority(ip) {
+  if (ip.startsWith('192.168.')) return 0;
+  if (ip.startsWith('10.')) return 1;
+  const m = ip.match(/^172\.(\d+)\./);
+  if (m) {
+    const n = Number(m[1]);
+    if (n >= 16 && n <= 31) return 2;
+  }
+  return 3;
+}
+
 function getLanIps() {
-  const ips = [];
+  const candidates = [];
   const interfaces = os.networkInterfaces();
   for (const name of Object.keys(interfaces)) {
+    const isVirtual = VIRTUAL_IFACE_RE.test(name);
     for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        ips.push(iface.address);
-      }
+      if (iface.family !== 'IPv4' || iface.internal) continue;
+      if (iface.address.startsWith('169.254.')) continue;
+      candidates.push({ ip: iface.address, virtual: isVirtual });
     }
   }
+  candidates.sort((a, b) => {
+    if (a.virtual !== b.virtual) return a.virtual ? 1 : -1;
+    return ipPriority(a.ip) - ipPriority(b.ip);
+  });
+  const ips = candidates.map((c) => c.ip);
   return ips.length ? ips : ['127.0.0.1'];
 }
 
@@ -30,6 +49,7 @@ const lanIp = lanIps[0];
 function renderHtml() {
   let html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf-8');
   html = html.replace('__LAN_IP__', lanIp);
+  html = html.replace('__LAN_IPS__', JSON.stringify(lanIps));
   html = html.replace('__PORT__', String(activePort));
   return html;
 }

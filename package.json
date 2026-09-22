@@ -1,6 +1,6 @@
 {
   "name": "dudust",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "跨设备剪贴板同步工具 - 局域网内多设备文本/剪贴板同步",
   "bin": {
     "dudust": "server.js"
